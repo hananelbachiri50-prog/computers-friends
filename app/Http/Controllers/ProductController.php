@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\Order;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -12,19 +13,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::query();
-        
-        // Search functionality
-        if ($request->has('search') && !empty($request->search)) {
-            $searchTerm = $request->search;
-            $query->where(function($q) use ($searchTerm) {
-                $q->where('name', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('specs', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('description', 'LIKE', "%{$searchTerm}%");
-            });
-        }
-        
-        $products = $query->get();
+        $products = Product::all();
         $favorites = session('favorites', []);
         
         return view('welcome', compact('products', 'favorites'));
@@ -50,16 +39,21 @@ class ProductController extends Controller
         if (in_array($productId, $favorites)) {
             // Remove from favorites
             $favorites = array_diff($favorites, [$productId]);
-            $message = 'Produit retiré des favoris';
+            $inFavorites = false;
         } else {
             // Add to favorites
             $favorites[] = $productId;
-            $message = 'Produit ajouté aux favoris';
+            $inFavorites = true;
         }
         
-        session(['favorites' => array_values($favorites)]);
+        $favorites = array_values($favorites);
+        session(['favorites' => $favorites]);
         
-        return redirect()->back()->with('success', $message);
+        return response()->json([
+            'success' => true,
+            'inFavorites' => $inFavorites,
+            'favoritesCount' => count($favorites)
+        ]);
     }
 
     /**
@@ -121,5 +115,33 @@ class ProductController extends Controller
         session(['cart' => array_values($cart)]);
         
         return redirect()->route('cart')->with('success', 'Produit retiré du panier');
+    }
+
+    /**
+     * Place an order for a product
+     */
+    public function placeOrder(Request $request, $productId)
+    {
+        $product = Product::findOrFail($productId);
+        
+        if (!auth()->check()) {
+            return redirect()->route('login')->with('error', 'Veuillez vous connecter pour commander');
+        }
+
+        $telephone = session('user_telephone', auth()->user()->telephone);
+
+        Order::create([
+            'user_id' => auth()->id(),
+            'product_id' => $productId,
+            'telephone' => $telephone,
+            'status' => 'pending',
+        ]);
+
+        // Remove from cart if it was there
+        $cart = session('cart', []);
+        $cart = array_diff($cart, [$productId]);
+        session(['cart' => array_values($cart)]);
+
+        return redirect()->route('home')->with('success', 'Commande passée avec succès ! Nous vous contacterons bientôt.');
     }
 }

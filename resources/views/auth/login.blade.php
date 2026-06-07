@@ -120,19 +120,19 @@
             <form action="{{ route('login') }}" method="POST" class="space-y-5">
                 @csrf
 
-                <!-- Nom d'utilisateur -->
+                <!-- Email -->
                 <div>
-                    <label for="username" class="block text-sm font-medium text-zinc-300 mb-2">Nom d'utilisateur</label>
+                    <label for="email" class="block text-sm font-medium text-zinc-300 mb-2">Adresse Email</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <i class="fas fa-at text-zinc-500"></i>
+                            <i class="fas fa-envelope text-zinc-500"></i>
                         </div>
-                        <input type="text" 
-                               name="username" 
-                               id="username" 
-                               value="{{ old('username') }}"
+                        <input type="email" 
+                               name="email" 
+                               id="email" 
+                               value="{{ old('email') }}"
                                class="input-field w-full bg-black/50 border border-zinc-700 text-white rounded-xl py-3 pl-12 pr-4 placeholder-zinc-500"
-                               placeholder="Votre pseudo"
+                               placeholder="votre@email.com"
                                required>
                     </div>
                 </div>

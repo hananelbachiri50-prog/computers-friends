@@ -171,6 +171,23 @@
                     </div>
                 </div>
 
+                <!-- Email -->
+                <div>
+                    <label for="email" class="block text-sm font-medium text-zinc-300 mb-2">Email</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fas fa-envelope text-zinc-500"></i>
+                        </div>
+                        <input type="email" 
+                               name="email" 
+                               id="email" 
+                               value="{{ old('email') }}"
+                               class="input-field w-full bg-black/50 border border-zinc-700 text-white rounded-xl py-3 pl-12 pr-4 placeholder-zinc-500"
+                               placeholder="votre@email.com"
+                               required>
+                    </div>
+                </div>
+
                 <!-- Nom d'utilisateur -->
                 <div>
                     <label for="username" class="block text-sm font-medium text-zinc-300 mb-2">Nom d'utilisateur</label>

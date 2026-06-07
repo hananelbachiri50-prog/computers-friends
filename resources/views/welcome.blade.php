@@ -211,39 +211,67 @@
                     </form>
                 </div>
                 
-                <!-- Navbar -->
-                <nav class="flex items-center gap-4">
-                    <a href="{{ route('favorites') }}" class="nav-link text-white hover:text-yellow-500 flex items-center gap-2 relative">
-                        <i class="fas fa-heart"></i>
-                        <span class="hidden md:inline">Favoris</span>
-                        @if(session('favorites') && count(session('favorites')) > 0)
-                        <span class="absolute -top-2 -right-2 w-5 h-5 bg-yellow-500 text-black text-xs rounded-full flex items-center justify-center font-bold">
-                            {{ count(session('favorites')) }}
-                        </span>
-                        @endif
-                    </a>
-                    <a href="{{ route('cart') }}" class="nav-link text-white hover:text-yellow-500 flex items-center gap-2 relative">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span class="hidden md:inline">Panier</span>
-                        @if(session('cart') && count(session('cart')) > 0)
-                        <span class="absolute -top-2 -right-2 w-5 h-5 bg-yellow-500 text-black text-xs rounded-full flex items-center justify-center font-bold">
-                            {{ count(session('cart')) }}
-                        </span>
-                        @endif
-                    </a>
-                    <a href="https://wa.me/212779517228" target="_blank" class="whatsapp-btn text-white py-2 px-4 rounded-full flex items-center gap-2">
-                        <i class="fab fa-whatsapp"></i>
-                        <span class="hidden md:inline">Need Help</span>
-                    </a>
-                    <a href="{{ route('login') }}" class="nav-link text-white hover:text-yellow-500">
-                        <i class="fas fa-sign-in-alt"></i>
-                        <span class="hidden md:inline">Connexion</span>
-                    </a>
-                    <a href="{{ route('register') }}" class="btn-primary py-2 px-5 rounded-full">
-                        <span class="hidden md:inline">Inscription</span>
-                        <span class="md:hidden"><i class="fas fa-user-plus"></i></span>
-                    </a>
-                </nav>
+                    <!-- Navbar -->
+                    <nav class="flex items-center gap-4">
+                        <a href="{{ route('favorites') }}" class="nav-link text-white hover:text-yellow-500 flex items-center gap-2 relative">
+                            <i class="fas fa-heart"></i>
+                            <span class="hidden md:inline">Favoris</span>
+                            @if(session('favorites') && count(session('favorites')) > 0)
+                            <span class="absolute -top-2 -right-2 w-5 h-5 bg-yellow-500 text-black text-xs rounded-full flex items-center justify-center font-bold">
+                                {{ count(session('favorites')) }}
+                            </span>
+                            @endif
+                        </a>
+                        <a href="{{ route('cart') }}" class="nav-link text-white hover:text-yellow-500 flex items-center gap-2 relative">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span class="hidden md:inline">Panier</span>
+                            @if(session('cart') && count(session('cart')) > 0)
+                            <span class="absolute -top-2 -right-2 w-5 h-5 bg-yellow-500 text-black text-xs rounded-full flex items-center justify-center font-bold">
+                                {{ count(session('cart')) }}
+                            </span>
+                            @endif
+                        </a>
+                        <a href="https://wa.me/212779517228" target="_blank" class="whatsapp-btn text-white py-2 px-4 rounded-full flex items-center gap-2">
+                            <i class="fab fa-whatsapp"></i>
+                            <span class="hidden md:inline">Need Help</span>
+                        </a>
+                        
+                        @auth
+                            <!-- User Greeting -->
+                            <div class="flex items-center gap-2 mr-2 border-r border-gray-700 pr-4">
+                                <div class="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-black font-bold text-sm">
+                                    {{ substr(auth()->user()->prenom ?? auth()->user()->name, 0, 1) }}
+                                </div>
+                                <div class="hidden md:block">
+                                    <p class="text-xs text-gray-400">Bonjour,</p>
+                                    <p class="text-sm font-medium text-yellow-500">{{ auth()->user()->prenom ?? auth()->user()->name }}</p>
+                                </div>
+                            </div>
+                            
+                            @if(auth()->user()->role === 'admin')
+                                <a href="{{ route('admin.dashboard') }}" class="bg-purple-600 text-white px-3 py-1.5 rounded-md text-xs font-bold hover:bg-purple-500 transition">
+                                    <i class="fas fa-cog mr-1"></i> Admin
+                                </a>
+                            @endif
+                            
+                            <form action="{{ route('logout') }}" method="POST" class="inline">
+                                @csrf
+                                <button type="submit" class="nav-link text-white hover:text-yellow-500">
+                                    <i class="fas fa-sign-out-alt mr-1"></i>
+                                    <span class="hidden md:inline">Déconnexion</span>
+                                </button>
+                            </form>
+                        @else
+                            <a href="{{ route('login') }}" class="nav-link text-white hover:text-yellow-500">
+                                <i class="fas fa-sign-in-alt"></i>
+                                <span class="hidden md:inline">Connexion</span>
+                            </a>
+                            <a href="{{ route('register') }}" class="btn-primary py-2 px-5 rounded-full">
+                                <span class="hidden md:inline">Inscription</span>
+                                <span class="md:hidden"><i class="fas fa-user-plus"></i></span>
+                            </a>
+                        @endauth
+                    </nav>
             </div>
         </div>
     </header>
@@ -360,17 +388,17 @@
                     <!-- Product Image -->
                     <div class="relative overflow-hidden group">
                         <a href="{{ route('product.show', $product->id) }}">
-                            <img src="{{ asset('product/' . $product->img) }}" 
-                                 alt="{{ $product->name }}" 
+                            <img src="{{ asset('storage/' . $product->img) }}"
+                                 alt="{{ $product->name }}"
                                  class="w-full h-48 object-contain p-4 transition-transform duration-500 group-hover:scale-110">
                         </a>
                         <div class="absolute top-3 right-3">
-                            <form action="{{ route('favorites.toggle', $product->id) }}" method="POST" class="inline">
-                                @csrf
-                                <button type="submit" class="w-10 h-10 rounded-full flex items-center justify-center transition-all {{ in_array($product->id, $favorites ?? []) ? 'bg-yellow-500 text-black' : 'bg-black/50 text-white hover:bg-yellow-500 hover:text-black' }}">
-                                    <i class="{{ in_array($product->id, $favorites ?? []) ? 'fas' : 'far' }} fa-heart"></i>
-                                </button>
-                            </form>
+                            <button type="button"
+                                    onclick="toggleFavorite({{ $product->id }}, this)"
+                                    class="w-10 h-10 rounded-full flex items-center justify-center transition-all {{ in_array($product->id, $favorites ?? []) ? 'bg-yellow-500 text-black' : 'bg-black/50 text-white hover:bg-yellow-500 hover:text-black' }}"
+                                    data-product-id="{{ $product->id }}">
+                                <i class="{{ in_array($product->id, $favorites ?? []) ? 'fas' : 'far' }} fa-heart"></i>
+                            </button>
                         </div>
                     </div>
                     
@@ -501,6 +529,58 @@
         document.getElementById('heroSlider').addEventListener('mouseenter', stopHeroAutoSlide);
         document.getElementById('heroSlider').addEventListener('mouseleave', startHeroAutoSlide);
         
+        // Favorite Toggle functionality
+        function toggleFavorite(productId, button) {
+            fetch('/favorites/' + productId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const heartIcon = button.querySelector('i');
+
+                    if (data.inFavorites) {
+                        // Product added to favorites
+                        button.classList.remove('bg-black/50', 'text-white', 'hover:bg-yellow-500', 'hover:text-black');
+                        button.classList.add('bg-yellow-500', 'text-black');
+                        heartIcon.classList.remove('far');
+                        heartIcon.classList.add('fas');
+                    } else {
+                        // Product removed from favorites
+                        button.classList.remove('bg-yellow-500', 'text-black');
+                        button.classList.add('bg-black/50', 'text-white', 'hover:bg-yellow-500', 'hover:text-black');
+                        heartIcon.classList.remove('fas');
+                        heartIcon.classList.add('far');
+                    }
+
+                    // Update favorites badge in navbar
+                    const favLink = document.querySelector('a[href="/favorites"]');
+                    if (favLink) {
+                        let badge = favLink.querySelector('span');
+                        if (data.favoritesCount > 0) {
+                            if (!badge) {
+                                badge = document.createElement('span');
+                                badge.className = 'absolute -top-2 -right-2 w-5 h-5 bg-yellow-500 text-black text-xs rounded-full flex items-center justify-center font-bold';
+                                favLink.appendChild(badge);
+                            }
+                            badge.textContent = data.favoritesCount;
+                        } else if (badge) {
+                            badge.remove();
+                        }
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error toggling favorite:', error);
+            });
+        }
+
         // Cart Notification System
         function openNotification(productName) {
             const notification = document.getElementById('cartNotification');

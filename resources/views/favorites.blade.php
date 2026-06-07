@@ -97,23 +97,61 @@
                     <a href="{{ route('favorites') }}" class="text-yellow-500 flex items-center gap-2">
                         <i class="fas fa-heart"></i>
                         <span class="hidden md:inline">Favoris</span>
+                        @if(session('favorites') && count(session('favorites')) > 0)
+                        <span class="w-5 h-5 bg-yellow-500 text-black text-xs rounded-full flex items-center justify-center font-bold">
+                            {{ count(session('favorites')) }}
+                        </span>
+                        @endif
                     </a>
-                    <a href="#" class="text-white hover:text-yellow-500 flex items-center gap-2 transition">
+                    <a href="{{ route('cart') }}" class="text-white hover:text-yellow-500 flex items-center gap-2 transition relative">
                         <i class="fas fa-shopping-cart"></i>
                         <span class="hidden md:inline">Panier</span>
+                        @if(session('cart') && count(session('cart')) > 0)
+                        <span class="absolute -top-2 -right-2 w-5 h-5 bg-yellow-500 text-black text-xs rounded-full flex items-center justify-center font-bold">
+                            {{ count(session('cart')) }}
+                        </span>
+                        @endif
                     </a>
                     <a href="https://wa.me/212779517228" target="_blank" class="bg-green-600 text-white py-2 px-4 rounded-full flex items-center gap-2 hover:bg-green-500 transition">
                         <i class="fab fa-whatsapp"></i>
                         <span class="hidden md:inline">Need Help</span>
                     </a>
-                    <a href="{{ route('login') }}" class="text-white hover:text-yellow-500 transition">
-                        <i class="fas fa-sign-in-alt"></i>
-                        <span class="hidden md:inline">Connexion</span>
-                    </a>
-                    <a href="{{ route('register') }}" class="bg-yellow-500 text-black px-5 py-2 rounded-full font-semibold hover:bg-yellow-400 transition">
-                        <span class="hidden md:inline">Inscription</span>
-                        <span class="md:hidden"><i class="fas fa-user-plus"></i></span>
-                    </a>
+                    
+                    @auth
+                        <!-- User Greeting -->
+                        <div class="flex items-center gap-2 mr-2 border-r border-gray-700 pr-4">
+                            <div class="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-black font-bold text-sm">
+                                {{ substr(auth()->user()->prenom ?? auth()->user()->name, 0, 1) }}
+                            </div>
+                            <div class="hidden md:block">
+                                <p class="text-xs text-gray-400">Bonjour,</p>
+                                <p class="text-sm font-medium text-yellow-500">{{ auth()->user()->prenom ?? auth()->user()->name }}</p>
+                            </div>
+                        </div>
+                        
+                        @if(auth()->user()->role === 'admin')
+                            <a href="{{ route('admin.dashboard') }}" class="bg-purple-600 text-white px-3 py-1.5 rounded-md text-xs font-bold hover:bg-purple-500 transition">
+                                <i class="fas fa-cog mr-1"></i> Admin
+                            </a>
+                        @endif
+                        
+                        <form action="{{ route('logout') }}" method="POST" class="inline">
+                            @csrf
+                            <button type="submit" class="text-white hover:text-yellow-500 transition">
+                                <i class="fas fa-sign-out-alt mr-1"></i>
+                                <span class="hidden md:inline">Déconnexion</span>
+                            </button>
+                        </form>
+                    @else
+                        <a href="{{ route('login') }}" class="text-white hover:text-yellow-500 transition">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span class="hidden md:inline">Connexion</span>
+                        </a>
+                        <a href="{{ route('register') }}" class="bg-yellow-500 text-black px-5 py-2 rounded-full font-semibold hover:bg-yellow-400 transition">
+                            <span class="hidden md:inline">Inscription</span>
+                            <span class="md:hidden"><i class="fas fa-user-plus"></i></span>
+                        </a>
+                    @endauth
                 </nav>
             </div>
         </div>
@@ -152,17 +190,16 @@
                 <!-- Product Image -->
                 <div class="relative overflow-hidden group">
                     <a href="{{ route('product.show', $product->id) }}">
-                        <img src="{{ asset('product/' . $product->img) }}" 
+                        <img src="{{ asset('storage/' . $product->img) }}" 
                              alt="{{ $product->name }}" 
                              class="w-full h-48 object-contain p-4 transition-transform duration-500 group-hover:scale-110">
                     </a>
                     <div class="absolute top-3 right-3">
-                        <form action="{{ route('favorites.toggle', $product->id) }}" method="POST" class="inline">
-                            @csrf
-                            <button type="submit" class="w-10 h-10 bg-yellow-500 text-black rounded-full flex items-center justify-center transition-all hover:bg-red-500 hover:text-white">
-                                <i class="fas fa-heart"></i>
-                            </button>
-                        </form>
+                        <button type="button"
+                                onclick="toggleFavorite({{ $product->id }}, this)"
+                                class="w-10 h-10 bg-yellow-500 text-black rounded-full flex items-center justify-center transition-all hover:bg-red-500 hover:text-white">
+                            <i class="fas fa-heart"></i>
+                        </button>
                     </div>
                 </div>
                 
@@ -187,7 +224,7 @@
                     <!-- Price and Add to Cart -->
                     <div class="flex items-center justify-between">
                         <span class="text-2xl font-bold text-yellow-500">{{ number_format($product->price, 0) }} DH</span>
-                        <button class="bg-yellow-500 text-black px-4 py-2 rounded-full font-semibold text-sm hover:bg-white transition-colors">
+                        <button onclick="addToCart({{ $product->id }})" class="bg-yellow-500 text-black px-4 py-2 rounded-full font-semibold text-sm hover:bg-white transition-colors">
                             <i class="fas fa-cart-plus mr-2"></i>Ajouter
                         </button>
                     </div>
@@ -221,6 +258,104 @@
 
     <!-- FOOTER -->
     @include('partials.footer')
+
+    <!-- Add to Cart JavaScript -->
+    <script>
+        // Toggle favorite function
+        function toggleFavorite(productId, button) {
+            fetch('/favorites/' + productId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const heartIcon = button.querySelector('i');
+
+                    if (data.inFavorites) {
+                        // Product added to favorites (shouldn't happen on favorites page, but handle it)
+                        button.classList.remove('bg-black/50', 'text-white');
+                        button.classList.add('bg-yellow-500', 'text-black');
+                        heartIcon.classList.remove('far');
+                        heartIcon.classList.add('fas');
+                    } else {
+                        // Product removed from favorites - remove the card from DOM
+                        button.closest('.product-card').remove();
+
+                        // Update counter text
+                        const counter = document.querySelector('.text-gray-400.mt-4');
+                        if (counter) {
+                            const remaining = document.querySelectorAll('.product-card').length;
+                            if (remaining > 0) {
+                                counter.textContent = remaining + ' produit(s) dans vos favoris';
+                            } else {
+                                counter.textContent = 'Vous n\'avez pas encore de produits favoris';
+                                // Show empty state
+                                location.reload();
+                            }
+                        }
+
+                        // Update navbar badge
+                        const favLink = document.querySelector('a[href="/favorites"]');
+                        if (favLink) {
+                            let badge = favLink.querySelector('span');
+                            if (data.favoritesCount > 0) {
+                                if (!badge) {
+                                    badge = document.createElement('span');
+                                    badge.className = 'w-5 h-5 bg-yellow-500 text-black text-xs rounded-full flex items-center justify-center font-bold';
+                                    favLink.appendChild(badge);
+                                }
+                                badge.textContent = data.favoritesCount;
+                            } else if (badge) {
+                                badge.remove();
+                            }
+                        }
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error toggling favorite:', error);
+            });
+        }
+
+        function addToCart(productId) {
+            fetch('/cart/add/' + productId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update cart count in navbar
+                    const cartLink = document.querySelector('a[href="/cart"]');
+                    if (cartLink) {
+                        let badge = cartLink.querySelector('span.absolute');
+                        if (!badge) {
+                            badge = document.createElement('span');
+                            badge.className = 'absolute -top-2 -right-2 w-5 h-5 bg-yellow-500 text-black text-xs rounded-full flex items-center justify-center font-bold';
+                            cartLink.appendChild(badge);
+                        }
+                        badge.textContent = data.cartCount;
+                    }
+                    
+                    // Show success notification
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Une erreur est survenue. Veuillez réessayer.');
+            });
+        }
+    </script>
 
 </body>
 </html>

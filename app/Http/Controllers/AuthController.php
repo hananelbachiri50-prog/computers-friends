@@ -27,6 +27,7 @@ class AuthController extends Controller
             'nom' => 'required|string|max:255',
             'prenom' => 'required|string|max:255',
             'telephone' => 'required|string|max:20',
+            'email' => 'required|email|unique:users,email',
             'username' => 'required|string|max:255|unique:users,name',
             'password' => 'required|string|min:6|confirmed',
         ]);
@@ -39,19 +40,23 @@ class AuthController extends Controller
 
         User::create([
             'name' => $request->username,
-            'email' => $request->username . '@computerfriends.ma', // Temporary email based on username
+            'email' => $request->email,
             'password' => Hash::make($request->password),
-            // Store additional info in a separate profile table or use JSON column
+            'nom' => $request->nom,
+            'prenom' => $request->prenom,
+            'telephone' => $request->telephone,
+            'role' => 'user',
+            'active' => true,
         ]);
 
-        // Store additional user info in session for now (simplified approach)
+        // Store additional user info in session for compatibility
         session([
             'user_nom' => $request->nom,
             'user_prenom' => $request->prenom,
             'user_telephone' => $request->telephone,
         ]);
 
-        return redirect()->route('home')->with('success', 'Inscription réussie ! Connectez-vous maintenant.');
+        return redirect()->route('login')->with('success', 'Inscription réussie ! Connectez-vous maintenant.');
     }
 
     /**
@@ -67,19 +72,35 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        $credentials = $request->only('username', 'password');
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
 
-        // Custom login logic since we're using username instead of email
-        $user = User::where('name', $credentials['username'])->first();
+        $credentials = $request->only('email', 'password');
 
-        if ($user && Hash::check($credentials['password'], $user->password)) {
-            Auth::login($user);
-            return redirect()->route('home')->with('success', 'Connexion réussie !');
+        if (Auth::attempt($credentials, $request->filled('remember'))) {
+            $user = Auth::user();
+            
+            // Check if user is active
+            if (!$user->active) {
+                Auth::logout();
+                return back()->withErrors([
+                    'email' => 'Votre compte est désactivé. Contactez l\'administrateur.',
+                ]);
+            }
+
+            // Redirect admin to dashboard, regular users to home
+            if ($user->role === 'admin') {
+                return redirect()->route('admin.dashboard')->with('success', 'Connexion réussie !');
+            }
+            
+            return redirect()->route('home')->with('success', 'Connexion réussie ! Bienvenue, ' . ($user->prenom ?? $user->name));
         }
 
         return back()->withErrors([
-            'username' => 'Nom d\'utilisateur ou mot de passe incorrect.',
-        ]);
+            'email' => 'Email ou mot de passe incorrect.',
+        ])->onlyInput('email');
     }
 
     /**
